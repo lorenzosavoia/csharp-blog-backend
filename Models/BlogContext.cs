@@ -9,6 +9,6 @@ namespace csharp_blog_backend.Models
         {
         }
 
-        public DbSet<Post> Posts { get; set; } = null!;
+        public DbSet<Post> Posts { get; set; }
     }
 }
