@@ -28,7 +28,9 @@ namespace csharp_blog_backend.Controllers
           {
               return NotFound();
           }
+         
             return await _context.Posts.ToListAsync();
+
         }
 
         // GET: api/Posts/5
@@ -45,6 +47,13 @@ namespace csharp_blog_backend.Controllers
             {
                 return NotFound();
             }
+
+            /*string fileName = "immagine-" + post.Id + "." + post.Image.Substring("FileLocal;".Length);
+
+            string Image = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot\\Files");
+
+            //string fileNameWithPath = Path.Combine(Image, fileName);
+            post.Image = "https://localhost:5000/Files/" + fileName;*/
 
             return post;
         }
@@ -83,14 +92,35 @@ namespace csharp_blog_backend.Controllers
         // POST: api/Posts
         // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
         [HttpPost]
-        public async Task<ActionResult<Post>> PostPost(Post post)
+        public async Task<ActionResult<Post>> PostPost([FromForm] Post post)
         {
-          if (_context.Posts == null)
-          {
-              return Problem("Entity set 'BlogContext.Posts'  is null.");
-          }
+            FileInfo fileInfo = new FileInfo(post.File.FileName);
+            post.Image = $"FileLocal{fileInfo.Extension}"; //questo é quello che viene salvato nel Db
+
             _context.Posts.Add(post);
+
             await _context.SaveChangesAsync();
+
+            //Estrazione File e salvataggio su file system.
+            //Agendo su Request ci prendiamo il file e lo salviamo su file system.
+
+            string Image = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot\\Files");
+            if (!Directory.Exists(Image))
+                Directory.CreateDirectory(Image);
+
+            string fileName = $"immagine-{post.Id}" + fileInfo.Extension;
+            string fileNameWithPath = Path.Combine(Image, fileName);
+
+            using (var stream = new FileStream(fileNameWithPath, FileMode.Create))
+            {
+                post.File.CopyTo(stream);
+            }
+
+            if (_context.Posts == null)
+                return Problem("Entity set 'BlogContext.Posts'  is null.");
+            post.Image = "https://localhost:5000/Files/" + fileName;
+
+            await _context.SaveChangesAsync();// salviamo le modifiche
 
             return CreatedAtAction("GetPost", new { id = post.Id }, post);
         }

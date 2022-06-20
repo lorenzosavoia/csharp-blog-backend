@@ -37,6 +37,8 @@ var app = builder.Build();
 
 app.UseHttpsRedirection();
 
+app.UseStaticFiles();
+
 //MODIFICA AGGIUNTA
 app.UseCors();
 
