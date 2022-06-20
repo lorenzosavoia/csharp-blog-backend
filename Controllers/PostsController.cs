@@ -95,11 +95,14 @@ namespace csharp_blog_backend.Controllers
         public async Task<ActionResult<Post>> PostPost([FromForm] Post post)
         {
             FileInfo fileInfo = new FileInfo(post.File.FileName);
-            post.Image = $"FileLocal{fileInfo.Extension}"; //questo é quello che viene salvato nel Db
+            // post.Image = $"FileLocal{fileInfo.Extension}"; //questo é quello che viene salvato nel Db
+            
+            Guid guid = Guid.NewGuid();//instanzio la criptografia di microsoft
 
-            _context.Posts.Add(post);
+            string fileName = guid.ToString() + fileInfo.Extension;
 
-            await _context.SaveChangesAsync();
+            
+            //await _context.SaveChangesAsync();
 
             //Estrazione File e salvataggio su file system.
             //Agendo su Request ci prendiamo il file e lo salviamo su file system.
@@ -108,18 +111,32 @@ namespace csharp_blog_backend.Controllers
             if (!Directory.Exists(Image))
                 Directory.CreateDirectory(Image);
 
-            string fileName = $"immagine-{post.Id}" + fileInfo.Extension;
             string fileNameWithPath = Path.Combine(Image, fileName);
 
-            using (var stream = new FileStream(fileNameWithPath, FileMode.Create))
+            //implementazione blol inizio
+
+            using (BinaryReader br = new BinaryReader(post.File.OpenReadStream()))
             {
-                post.File.CopyTo(stream);
+                post.ImageBytes = br.ReadBytes((int)post.File.OpenReadStream().Length);
             }
 
-            if (_context.Posts == null)
-                return Problem("Entity set 'BlogContext.Posts'  is null.");
+            //implementazione blol inizio
+
+            // inizio stringa normale
+             using (var stream = new FileStream(fileNameWithPath, FileMode.Create))
+             {
+                 post.File.CopyTo(stream);
+             }
+             // fine stringa normale
+
+
+            //controllo che non serve perché siamo sicuri esista la tabella post
+            /*if (_context.Posts == null)
+                return Problem("Entity set 'BlogContext.Posts'  is null.");*/
+
             post.Image = "https://localhost:5000/Files/" + fileName;
 
+            _context.Posts.Add(post);
             await _context.SaveChangesAsync();// salviamo le modifiche
 
             return CreatedAtAction("GetPost", new { id = post.Id }, post);
